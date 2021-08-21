@@ -7,3 +7,5 @@ COPY . .
 RUN cargo install cargo-make
 
 EXPOSE 8000
+
+CMD cargo make watch & cargo make serve

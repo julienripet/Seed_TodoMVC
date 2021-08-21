@@ -159,7 +159,7 @@ fn view(model: &Model) -> Vec<Node<Msg>> {
         view_header(&model.new_todo_title),
         IF!(not(model.todos.is_empty()) => vec![
             view_main(&model.todos, model.selected_todo.as_ref()),
-            view_footer(model.filter),
+            view_footer(&model.todos, model.filter),
         ]),
     ]
 }
@@ -207,24 +207,35 @@ fn view_todo_list(todos: &BTreeMap<Ulid, Todo>, selected_todo: Option<&SelectedT
                     label![&todo.title],
                     button![C!["destroy"]],
                 ],
-                IF!(is_selected => input![C!["edit"], attrs!{At::Value => selected_todo.unwrap().title}]),
+                IF!(is_selected => {
+                    let selected_todo = selected_todo.unwrap();
+                    input![C!["edit"],
+                        el_ref(&selected_todo.input_element),
+                        attrs!{At::Value => selected_todo.title}
+                    ]
+                }),
             ]
         }) 
     ]
 }
 
-fn view_footer(selected_filter: Filter) -> Node<Msg> {
+fn view_footer(todos: &BTreeMap<Ulid, Todo>, selected_filter: Filter) -> Node<Msg> {
+    let completed_count = todos.values().filter(|todo| todo.completed).count();
+    let active_count =  todos.len() - completed_count;
+
     footer![C!["footer"],
         // This should be `0 items left` by default
         span![C!["todo-count"],
-            strong!["0"],
-            " item left",
+            strong![active_count],
+            format!(" item{} left", if active_count == 1 {""} else {"s"}),
         ],
         view_filters(selected_filter),
         // Hidden if no completed items are left ↓
-        button![C!["clear-completed"],
-            "Clear completed"
-        ]
+        IF!(completed_count > 0 =>
+            button![C!["clear-completed"],
+                "Clear completed"
+            ]
+        )
     ]
 }
 

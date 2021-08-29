@@ -7,10 +7,13 @@
 use seed::{prelude::*, *};
 
 use std::collections::BTreeMap;
+use std::mem;
 
 use ulid::Ulid;
 use strum_macros::EnumIter;
 use strum::IntoEnumIterator;
+
+const ENTER_KEY: &str = "Enter";
 
 // ------ ------
 //     Init
@@ -116,9 +119,20 @@ fn update(msg: Msg, model: &mut Model, _: &mut impl Orders<Msg>) {
         }
         Msg::NewTodoTilteChanged(title) =>{
             log!("NewTodoTilteChanged", title);
+            model.new_todo_title = title;
         }
 
         Msg::CreateTodo => {
+            let title = model.new_todo_title.trim();
+            if not(title.is_empty()) {
+                let id =  Ulid::new();
+                model.todos.insert(id, Todo{
+                    id,
+                    title: title.to_owned(),
+                    completed:false
+                });
+                model.new_todo_title.clear();
+            }
             log!("CreateTodo");
         }
         Msg::ToggleTodo(id) => {
@@ -177,6 +191,10 @@ fn view_header(new_todo_title: &str) -> Node<Msg>{
                 At::AutoFocus=> AtValue::None,
                 At::Value => new_todo_title
             },
+            input_ev(Ev::Input, Msg::NewTodoTilteChanged),
+            keyboard_ev(Ev::KeyDown, |keyboard_event|{
+                IF!(keyboard_event.key() == ENTER_KEY => Msg::CreateTodo)
+            })
         ]
     ]
 }

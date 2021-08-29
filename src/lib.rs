@@ -123,8 +123,12 @@ fn update(msg: Msg, model: &mut Model, _: &mut impl Orders<Msg>) {
         }
         Msg::ToggleTodo(id) => {
             log!("ToggleTodo", id);
+            if let Some(todo) = model.todos.get_mut(&id) {
+                todo.completed = not(todo.completed)
+            }
         }
         Msg::RemoveTodo(id) => {
+            model.todos.remove(&id);
             log!("RemoveTodo", id);
         }
         
@@ -199,13 +203,19 @@ fn view_toggle_all(todos: &BTreeMap<Ulid, Todo>) -> Vec<Node<Msg>>{
 fn view_todo_list(todos: &BTreeMap<Ulid, Todo>, selected_todo: Option<&SelectedTodo>) -> Node<Msg>{
     ul![C!["todo-list"],
         todos.values().map(|todo| {
+            let id = todo.id;
             let is_selected = Some(todo.id) == selected_todo.map(|selected_todo| selected_todo.id);
 
             li![C![IF!(todo.completed => "completed"), IF!(is_selected => "editing")],
                 div![C!["view"],
-                    input![C!["toggle"], attrs!{At::Type => "checkbox", At::Checked => todo.completed.as_at_value()}],
+                    input![C!["toggle"],
+                        attrs!{At::Type => "checkbox", At::Checked => todo.completed.as_at_value()},
+                        ev(Ev::Change, move |_| Msg::ToggleTodo(id))
+                    ],
                     label![&todo.title],
-                    button![C!["destroy"]],
+                    button![C!["destroy"],
+                        ev(Ev::Click, move |_| Msg::RemoveTodo(id))
+                    ],
                 ],
                 IF!(is_selected => {
                     let selected_todo = selected_todo.unwrap();
